@@ -1,6 +1,7 @@
 import numpy as np
 
 from .trading_env import TradingEnv, Actions, Positions
+import logging
 
 
 class ForexEnv(TradingEnv):
@@ -21,10 +22,10 @@ class ForexEnv(TradingEnv):
 
         prices[self.frame_bound[0] - self.window_size]  # validate index (TODO: Improve validation)
         prices = prices[self.frame_bound[0]-self.window_size:self.frame_bound[1]]
-
+        srcdiff = np.diff(prices)
         diff = np.insert(np.diff(prices), 0, 0)
         signal_features = np.column_stack((prices, diff))
-
+        logging.debug("prices.shape={},signal_features.shape={},diff.shape={},srcdiff.shape={}".format(prices.shape,signal_features.shape,diff.shape,srcdiff.shape))
         return prices, signal_features
 
 
