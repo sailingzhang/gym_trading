@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from enum import Enum
 import matplotlib.pyplot as plt
+import logging
 
 
 class Actions(Enum):
@@ -24,171 +25,103 @@ class forex_candle_env(gym.Env):
 
     metadata = {'render.modes': ['human']}
 
-    def __init__(self, df, window_size,onlyClose=False,initCapital=100,fee):
+    def __init__(self, datapath, window_size,onlyClose=False,initCapitalPoint=2000,feePoint=20):
+        """
+        pointProfit:the gain or loss when  up or down 1 point every unit
+        initCapitalPoint:how many  points the capital can cost every unit
+        """
+        self.basequate = 100000 
         self._seed()
-        self._df = df
+        self._df = self._load_dataset(datapath)
         self._window_size = window_size
-        self._initCapital = initCapital
         self._onlyClose = onlyClose
-        self._fee = fee
-
-        self._holdPosition = 0
-        self._holdPrice = 0
-        self._floattingCapital = self._initCapital
-        self._capital =self._initCapital
-
-        self._current_tick = self._window_size
-        self._done = None
+        self._initCapitalPoint = initCapitalPoint
+        self._feePoint = feePoint
 
         if self._onlyClose:
-            #(closeprice[window_size],spread,holdPosition,holdPrice,capital)
-            self._shape = (self._window_size+3,)
+            #(closeprice[window_size],feePoint,holdPosition,holdPrice,floattingCaptalPoint)
+            self._shape = (self._window_size+4,)
         else:
-            #((openprice,highprice,lowprice,closeprice)[window_size],spread,holdPosition,holdPrice,capital)
-            self._shape = (self._window_size*4+3,)
+            #((openprice,highprice,lowprice,closeprice)[window_size],feePoint,holdPosition,holdPrice,floattingCaptalPoint)
+            self._shape = (self._window_size*4+4,)
 
         # spaces
         self.action_space = spaces.Discrete(len(Actions))
-        self.observation_space = spaces.Box(low=np.inf, high=np.inf, shape=self.shape, dtype=np.float32)
+        self.observation_space = spaces.Box(low=np.inf, high=np.inf, shape=self._shape, dtype=np.float32)
+
+        self.reset()
     def reset(self):
-        self._holdPosition = 0
-        self._holdPosition = 0
-        self._capital =self._initCapital
-        self._floattingCapital = self._initCapital
+        self._holdPosition = 0#the uint is 1 or -1
+        self._holdPrice = 0
+        self._capitalPoint =self._initCapitalPoint
         self._current_tick = self._window_size
         self._done = False
-
         return self._get_observation()
 
 
     def step(self, action):
-
-
-        self._done = False
-        self._current_tick += 1
-
-        if self._current_tick == self._end_tick:
-            self._done = True
-
-        step_reward = self._calculate_reward(action)
-        self._total_reward += step_reward
-
-        self._update_profit(action)
-
-        trade = False
-        if ((action == Actions.Buy.value and self._position == Positions.Short) or
-            (action == Actions.Sell.value and self._position == Positions.Long)):
-            trade = True
-
-        if trade:
-            self._position = self._position.opposite()
-            self._last_trade_tick = self._current_tick
-
-        self._position_history.append(self._position)
+        oldFloattingCapitalPoint = self._floattingCapitalPoint()
+        self._updateStep(action)
         observation = self._get_observation()
-        info = dict(
-            total_reward = self._total_reward,
-            total_profit = self._total_profit,
-            position = self._position.value
-        )
+        info = {}
+        step_reward = self._floattingCapitalPoint() - oldFloattingCapitalPoint
         return observation, step_reward, self._done, info
 
-    def _updateCation(self,action):
-        ValidTrade = False
+    def _currentPrice(self):
+        return self._df.loc[self._current_tick, 'Close']
+    def _floattingCapitalPoint(self):
+        return self.basequate * (self._currentPrice() - self._holdPrice)* self._holdPosition + self._capitalPoint
+    def _updateStep(self,action):
+        isClose = None
+        oldHoldPosition = self._holdPrice
+        pointPrice = 0
+        getProfitPoint = 0
+        self._current_tick += 1
         if action == Actions.Buy.value:
+            if self._holdPosition < 0:
+               isClose = True
+               getProfitPoint = 1*(self._currentPrice() - self._holdPrice)*self.basequate 
+            else:
+                isClose = False
+                pointPrice =  1*self._feePoint
             self._holdPosition +=1
         if action == Actions.Sell.value:
+            if self._holdPosition > 0:
+                isClose = True
+                getProfitPoint = -1*(self._currentPrice() - self._holdPrice)*self.basequate 
+            else:
+                isClose = False
+                pointPrice = -1 * self._feePoint 
             self._holdPosition -= 1
-        self._capital -= self._
-        if ((action == Actions.Buy.value and self._position == Positions.Short) or
-            (action == Actions.Sell.value and self._position == Positions.Long)):
-            trade = True
-        self._current_tick += 1
+        
+        if isClose == True:
+            self._capitalPoint += getProfitPoint
+        else:
+            self._holdPrice = (self._holdPrice * oldHoldPosition + (self._currentPrice()+feePoint)*1)/self._holdPosition
+        if self._floattingCapitalPoint() < 0 or self._current_tick >= len(self._df):
+            self._done = True
+        
 
     def _get_observation(self):
         if self._onlyClose:
             prices = self._df.loc[self._current_tick-self._window_size:self._current_tick, 'Close'].tolist()
         else:
             prices = self._df.loc[self._current_tick-self._window_size:self._current_tick,['Open', 'High', 'Low','Close']].tolist()
-        observationlist = prices.append(self._spread,self._holdPosition,self._holdPrice,self._floattingCapital)
+        observationlist = prices.append(self._feePoint,self._holdPosition,self._holdPrice,self._floattingCapitalPoint())
         return np.array(observationlist)
     
-
-
-
-    def render(self, mode='human'):
-
-        def _plot_position(position, tick):
-            color = None
-            if position == Positions.Short:
-                color = 'red'
-            elif position == Positions.Long:
-                color = 'green'
-            if color:
-                plt.scatter(tick, self.prices[tick], color=color)
-
-        if self._first_rendering:
-            self._first_rendering = False
-            plt.cla()
-            plt.plot(self.prices)
-            start_position = self._position_history[self._start_tick]
-            _plot_position(start_position, self._start_tick)
-
-        _plot_position(self._position, self._current_tick)
-
-        plt.suptitle(
-            "Total Reward: %.6f" % self._total_reward + ' ~ ' +
-            "Total Profit: %.6f" % self._total_profit
-        )
-
-        plt.pause(0.01)
-
-
-    def render_all(self, mode='human'):
-        window_ticks = np.arange(len(self.prices))
-        plt.plot(self.prices)
-
-        short_ticks = []
-        long_ticks = []
-        for i, tick in enumerate(window_ticks):
-            if self._position_history[i] == Positions.Short:
-                short_ticks.append(tick)
-            elif self._position_history[i] == Positions.Long:
-                long_ticks.append(tick)
-
-        plt.plot(short_ticks, self.prices[short_ticks], 'ro')
-        plt.plot(long_ticks, self.prices[long_ticks], 'go')
-
-        plt.suptitle(
-            "Total Reward: %.6f" % self._total_reward + ' ~ ' +
-            "Total Profit: %.6f" % self._total_profit
-        )
-
-
     def _load_dataset(filepath, index_name):
         return pd.read_csv(filepath, index_col=index_name)
-    def save_rendering(self, filepath):
-        plt.savefig(filepath)
-
-
-    def pause_rendering(self):
-        plt.show()
-
     def _seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
-
-    def _process_data(self):
-        raise NotImplementedError
-
-
-    def _calculate_reward(self, action):
-        raise NotImplementedError
-
-
-    def _update_profit(self, action):
-        raise NotImplementedError
+    def render(self, mode='human'):
+        logging.debug("floatprofitPoint={}".format(self._floattingCapitalPoint()))
+    def render_all(self, mode='human'):
+        pass
+    def save_rendering(self, filepath):
+        pass
 
 
-    def max_possible_profit(self):  # trade fees are ignored
-        raise NotImplementedError
+
+
