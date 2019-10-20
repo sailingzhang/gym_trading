@@ -9,9 +9,12 @@ from gym_anytrading_master.gym_anytrading.envs import  ForexEnv
 
 import matplotlib.pyplot as plt
 from copy import deepcopy
+from envs import forex_env
+import numpy as np
 import log_init
 import logging
 
+FOREC_DATA="C:\mydata\develop\mygit\gym_trading\data\FOREX_EURUSD_1H_ASK.csv"
 
 def test():
     log_init.log_init("test.log")
@@ -34,5 +37,23 @@ def test():
     plt.show()
 
 
+def test2():
+    log_init.log_init("../tmp/test.log")
+    logging.debug("enter")
+    npdata = np.loadtxt(FOREC_DATA,delimiter=",",skiprows=1,usecols=(1,2,3,4,5)).astype("float32")
+    env = forex_env.forex_candle_env(npdata=npdata, window_size=600,initCapitalPoint=2000,feePoint=20)
+    observation = env.reset()
+    while True:
+        a = forex_env.Actions.Buy.value
+        # a = env.action_space.sample()
+        logging.debug("a={}".format(a))
+        observation, reward, done, info = env.step(a)
+        env.render()
+        if done:
+            print("info:", info)
+            break
+
+
 if __name__=="__main__":
-    test()
+    # test()
+    test2()
