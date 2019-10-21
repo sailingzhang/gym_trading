@@ -1,5 +1,5 @@
 import gym
-
+import time
 # import gym_anytrading
 # from gym_anytrading.envs import TradingEnv, ForexEnv, StocksEnv, Actions, Positions 
 # from gym_anytrading.datasets import FOREX_EURUSD_1H_ASK, STOCKS_GOOGL
@@ -52,10 +52,11 @@ def test2():
         if done:
             print("info:", info)
             break
-    plt.cla()
+    # plt.cla()
     env.render_all()
-    plt.show()
+    # plt.show()
 
 if __name__=="__main__":
-    test()
-    # test2()
+    # test()
+    test2()
+    time.sleep(50)

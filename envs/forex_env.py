@@ -4,8 +4,8 @@ from gym import spaces
 from gym.utils import seeding
 print("load np")
 import numpy as np
-# print("load pd")
-# import pandas as pd
+print("load pd")
+import pandas as pd
 print("load enum")
 from enum import Enum
 print("load plt")
@@ -13,6 +13,13 @@ import matplotlib.pyplot as plt
 print("load logging")
 import logging
 print("load over")
+
+import pyecharts
+from pyecharts.charts import Bar
+
+import plotly.graph_objects as go
+
+
 
 class Actions(Enum):
     Sell = 0
@@ -138,7 +145,33 @@ class forex_candle_env(gym.Env):
         return [seed]
     def render(self, mode='human'):
         logging.debug("self._done={},self._feePoint={},self._holdPosition={},self._holdPrice={},self._floattingCapitalPoint()={}".format(self._done,self._feePoint,self._holdPosition,self._holdPrice,self._floattingCapitalPoint()))
-    def render_all(self, mode='human'):
+    def render_all(self):
+        logging.debug("begin plotly")
+        fig = go.Figure(data=go.Bar(y=[2, 3, 1]))
+        fig.show()
+
+
+        # df = pd.read_csv('data/finance-charts-apple.csv')
+        # # # df = pd.read_csv('https://raw.githubusercontent.com/plotly/datasets/master/finance-charts-apple.csv')
+        # trace0 = go.Figure([go.Scatter(x=df['Date'], y=df['AAPL.High'])])
+        # trace0.show()
+        # # data = [trace0]
+        # # py.plot(data)
+
+        # df = pd.read_csv("data/FOREX_EURUSD_1H_ASK.csv")
+        # trace0 = go.Figure([go.Scatter(x=df['Time'], y=df['Close'])])
+        # data = [trace0]
+        # py.plot(data)
+
+        # print(pyecharts.__version__)
+        # bar = Bar()
+        # bar.add_xaxis(["衬衫", "羊毛衫", "雪纺衫", "裤子", "高跟鞋", "袜子"])
+        # bar.add_yaxis("商家A", [5, 20, 36, 10, 75, 90])
+        # # render 会生成本地 HTML 文件，默认会在当前目录生成 render.html 文件
+        # # 也可以传入路径参数，如 bar.render("mycharts.html")
+        # bar.render_notebook()
+
+    def render_all_bak(self, mode='human'):
         drawprice = self._np[0:self._current_tick,self._np_closeprice_index]
         logging.debug("len(drawprice)={},drawprice={}".format(len(drawprice),drawprice))
         window_ticks = np.arange(len(drawprice))
