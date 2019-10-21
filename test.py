@@ -14,8 +14,8 @@ import numpy as np
 import log_init
 import logging
 
-FOREC_DATA="C:\mydata\develop\mygit\gym_trading\data\FOREX_EURUSD_1H_ASK.csv"
-
+# FOREC_DATA="C:\mydata\develop\mygit\gym_trading\data\FOREX_EURUSD_1H_ASK.csv"
+FOREC_DATA="data/FOREX_EURUSD_1H_ASK.csv"
 def test():
     log_init.log_init("test.log")
     logging.debug("enter")
@@ -27,13 +27,13 @@ def test():
     while True:
         action = env.action_space.sample()
         observation, reward, done, info = env.step(action)
-        # env.render()
+        env.render()
         if done:
             print("info:", info)
             break
 
     plt.cla()
-    env.render_all()
+    # env.render_all()
     plt.show()
 
 
@@ -41,19 +41,21 @@ def test2():
     log_init.log_init("../tmp/test.log")
     logging.debug("enter")
     npdata = np.loadtxt(FOREC_DATA,delimiter=",",skiprows=1,usecols=(1,2,3,4,5)).astype("float32")
-    env = forex_env.forex_candle_env(npdata=npdata, window_size=600,initCapitalPoint=2000,feePoint=20)
+    env = forex_env.forex_candle_env(npdata=npdata,npdata_closeprice_index= 3,window_size=600,initCapitalPoint=2000,feePoint=20)
     observation = env.reset()
     while True:
-        a = forex_env.Actions.Buy.value
-        # a = env.action_space.sample()
+        # a = forex_env.Actions.Sell.value
+        a = env.action_space.sample()
         logging.debug("a={}".format(a))
         observation, reward, done, info = env.step(a)
-        env.render()
+        # env.render()
         if done:
             print("info:", info)
             break
-
+    plt.cla()
+    env.render_all()
+    plt.show()
 
 if __name__=="__main__":
-    # test()
-    test2()
+    test()
+    # test2()

@@ -9,7 +9,7 @@ import numpy as np
 print("load enum")
 from enum import Enum
 print("load plt")
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 print("load logging")
 import logging
 print("load over")
@@ -22,7 +22,7 @@ class Actions(Enum):
 
 class forex_candle_env(gym.Env):
     metadata = {'render.modes': ['human']}
-    def __init__(self, npdata, window_size,initCapitalPoint=2000,feePoint=20):
+    def __init__(self, npdata,npdata_closeprice_index,window_size,initCapitalPoint=2000,feePoint=20):
         """
         pointProfit:the gain or loss when  up or down 1 point every unit
         initCapitalPoint:how many  points the capital can cost every unit
@@ -30,6 +30,7 @@ class forex_candle_env(gym.Env):
         
         self.basequate = 100000 
         self._np = npdata
+        self._np_closeprice_index= npdata_closeprice_index
         self._window_size = window_size
         self._initCapitalPoint = initCapitalPoint
         self._feePoint = feePoint
@@ -49,6 +50,12 @@ class forex_candle_env(gym.Env):
         self._capitalPoint =self._initCapitalPoint
         self._current_tick = self._window_size
         self._done = False
+
+        self._OpenLongTicks=[]
+        self._OPenShortTicks=[]
+        self._CloseLongTicks=[]
+        self._CloseShortTicks=[]
+
         return self._get_observation()
 
 
@@ -63,7 +70,7 @@ class forex_candle_env(gym.Env):
 
     def _currentPrice(self):
         # return self._df.loc[self._current_tick, 'Close']
-        cur_price = self._np[self._current_tick][3]
+        cur_price = self._np[self._current_tick][self._np_closeprice_index]
         logging.debug("cur_trick={},cur_price={}".format(self._current_tick,cur_price))
         return cur_price
     def _floattingCapitalPoint(self):
@@ -83,21 +90,25 @@ class forex_candle_env(gym.Env):
             if self._holdPosition < 0:
                isClose = True
                getProfitPoint = -1*(self._currentPrice() - self._holdPrice)*self.basequate
-               logging.debug("close short,position={},action={}".format(self._holdPosition,action))
+               self._CloseShortTicks.append(self._current_tick)
+               logging.debug("close short,position={},action={},,cur_tick={}".format(self._holdPosition,action,self._current_tick))
             else:
                 isOpen = True
                 pointPrice =  1*self._feePoint/self.basequate
-                logging.debug("open long,position={},action={}".format(self._holdPosition,action))
+                self._OpenLongTicks.append(self._current_tick)
+                logging.debug("open long,position={},action={},cur_tick={}".format(self._holdPosition,action,self._current_tick))
             self._holdPosition +=1
         elif action == Actions.Sell.value:
             if self._holdPosition > 0:
                 isClose = True
                 getProfitPoint = 1*(self._currentPrice() - self._holdPrice)*self.basequate
-                logging.debug("close long,position={},action={}".format(self._holdPosition,action))
+                self._CloseLongTicks.append(self._current_tick)
+                logging.debug("close long,position={},action={},cur_tick={}".format(self._holdPosition,action,self._current_tick))
             else:
                 isOpen = True
                 pointPrice = -1 * self._feePoint/self.basequate
-                logging.debug("open short,position={},action={}".format(self._holdPosition,action))
+                self._OPenShortTicks.append(self._current_tick)
+                logging.debug("open short,position={},action={},cur_tick={}".format(self._holdPosition,action,self._current_tick))
             self._holdPosition -= 1
         else:
             logging.debug("just hold")
@@ -128,7 +139,32 @@ class forex_candle_env(gym.Env):
     def render(self, mode='human'):
         logging.debug("self._done={},self._feePoint={},self._holdPosition={},self._holdPrice={},self._floattingCapitalPoint()={}".format(self._done,self._feePoint,self._holdPosition,self._holdPrice,self._floattingCapitalPoint()))
     def render_all(self, mode='human'):
-        pass
+        drawprice = self._np[0:self._current_tick,self._np_closeprice_index]
+        logging.debug("len(drawprice)={},drawprice={}".format(len(drawprice),drawprice))
+        window_ticks = np.arange(len(drawprice))
+        plt.plot(drawprice)
+        plt.scatter(self._OpenLongTicks, self._np[self._OpenLongTicks,self._np_closeprice_index], c='r',marker='^')
+        plt.scatter(self._OPenShortTicks, self._np[self._OPenShortTicks,self._np_closeprice_index],c='r', marker='v')
+        plt.scatter(self._CloseLongTicks, self._np[self._CloseLongTicks,self._np_closeprice_index],c='g' ,marker='^', alpha=0.5)
+        plt.scatter(self._CloseShortTicks, self._np[self._CloseShortTicks,self._np_closeprice_index],c='g', marker='v', alpha=0.5)
+        return
+        short_ticks = []
+        long_ticks = []
+        for i, tick in enumerate(window_ticks):
+            if self._position_history[i] == Positions.Short:
+                short_ticks.append(tick)
+            elif self._position_history[i] == Positions.Long:
+                long_ticks.append(tick)
+
+        plt.plot(short_ticks, self.prices[short_ticks], 'ro')
+        # plt.plot(long_ticks, self.prices[long_ticks], 'go')
+        # plt.plot(long_ticks, self.prices[long_ticks], 'g*-')
+        plt.scatter(long_ticks, self.prices[long_ticks], marker='^', alpha=0.5)
+
+        plt.suptitle(
+            "Total Reward: %.6f" % self._total_reward + ' ~ ' +
+            "Total Profit: %.6f" % self._total_profit
+        )
     def save_rendering(self, filepath):
         pass
 

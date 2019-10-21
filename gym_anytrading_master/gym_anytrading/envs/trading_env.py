@@ -142,7 +142,9 @@ class TradingEnv(gym.Env):
                 long_ticks.append(tick)
 
         plt.plot(short_ticks, self.prices[short_ticks], 'ro')
-        plt.plot(long_ticks, self.prices[long_ticks], 'go')
+        # plt.plot(long_ticks, self.prices[long_ticks], 'go')
+        # plt.plot(long_ticks, self.prices[long_ticks], 'g*-')
+        plt.scatter(long_ticks, self.prices[long_ticks], marker='^', alpha=0.5)
 
         plt.suptitle(
             "Total Reward: %.6f" % self._total_reward + ' ~ ' +
