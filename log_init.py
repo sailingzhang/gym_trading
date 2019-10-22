@@ -17,10 +17,10 @@ def log_init(log_file):
     formatter = logging.Formatter('%(asctime)s %(filename)s[line:%(lineno)d][%(funcName)s] %(levelname)s %(message)s')
 
     handler = RotatingFileHandler(log_file, maxBytes=102400000, backupCount=5)
-    handler.setLevel('DEBUG')
+    handler.setLevel('INFO')
     handler.setFormatter(formatter)
     logger = logging.getLogger('')
-    logger.setLevel('DEBUG')
+    logger.setLevel('INFO')
     logger.addHandler(handler)
 
     console.setFormatter(formatter)

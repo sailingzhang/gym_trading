@@ -40,8 +40,8 @@ def test():
 def test2():
     log_init.log_init("../tmp/test.log")
     logging.debug("enter")
-    npdata = np.loadtxt(FOREC_DATA,delimiter=",",skiprows=1,usecols=(1,2,3,4,5)).astype("float32")
-    env = forex_env.forex_candle_env(npdata=npdata,npdata_closeprice_index= 3,window_size=600,initCapitalPoint=2000,feePoint=20)
+    # npdata = np.loadtxt(FOREC_DATA,delimiter=",",skiprows=1,usecols=(1,2,3,4,5)).astype("float32")
+    env = forex_env.forex_candle_env(FOREC_DATA,window_size=600,initCapitalPoint=2000,feePoint=20)
     observation = env.reset()
     while True:
         # a = forex_env.Actions.Sell.value
@@ -52,11 +52,11 @@ def test2():
         if done:
             print("info:", info)
             break
-    # plt.cla()
+    plt.cla()
     env.render_all()
-    # plt.show()
+    plt.show()
 
 if __name__=="__main__":
     # test()
     test2()
-    time.sleep(50)
+    # time.sleep(50)
