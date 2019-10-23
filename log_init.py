@@ -3,7 +3,7 @@ import sys
 import  os
 import datetime
 from logging.handlers import RotatingFileHandler
-def log_init(log_file):
+def log_init(log_file,level):
     # logging.basicConfig(level=logging.DEBUG,
     #                     #format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
     #                     format='%(asctime)s %(filename)s[line:%(lineno)d][%(funcName)s] %(levelname)s %(message)s',
@@ -17,10 +17,10 @@ def log_init(log_file):
     formatter = logging.Formatter('%(asctime)s %(filename)s[line:%(lineno)d][%(funcName)s] %(levelname)s %(message)s')
 
     handler = RotatingFileHandler(log_file, maxBytes=102400000, backupCount=5)
-    handler.setLevel('DEBUG')
+    handler.setLevel(level)
     handler.setFormatter(formatter)
     logger = logging.getLogger('')
-    logger.setLevel('DEBUG')
+    logger.setLevel(level)
     logger.addHandler(handler)
 
     console.setFormatter(formatter)

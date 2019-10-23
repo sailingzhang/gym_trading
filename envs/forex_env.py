@@ -74,10 +74,11 @@ class forex_candle_env(gym.Env):
 
     def step(self, action):
         oldFloattingCapitalPoint = self._floattingCapitalPoint()
+        oldprice = self._currentPrice()
         self._updateStep(action)
         observation = self._get_observation()
-        info = {}
         step_reward = self._floattingCapitalPoint() - oldFloattingCapitalPoint
+        info = {"action":action,"oldprice":oldprice,"curprice":self._currentPrice(),"reward":step_reward,"floattingCaption":self._floattingCapitalPoint()}
         logging.debug("step={},step_reward={}".format(self._current_tick,step_reward))
         return observation, step_reward, self._done, info
 
@@ -223,9 +224,10 @@ def ValidationRun(env, net, episodes=10, device="cpu", epsilon=0.02, comission=0
             else:
                 action = action_idx
                 # action = Actions(action_idx)
-            obs, reward, done, _ = env.step(action)
+            obs, reward, done, info= env.step(action)
             total_reward += reward
-            logging.info("action={},reward={},toal_reward={},floattingCaption={}".format(action,reward,total_reward,env._floattingCapitalPoint()))
+            logging.info("info={}".format(info))
+            # logging.info("action={},reward={},toal_reward={},floattingCaption={}".format(action,reward,total_reward,env._floattingCapitalPoint()))
             if done:
                 stats['episode_reward'].append(total_reward)
                 stats['order_profits'].append(env._floattingCapitalPoint())
