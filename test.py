@@ -46,7 +46,7 @@ def test2():
     while True:
         # a = forex_env.Actions.Sell.value
         a = env.action_space.sample()
-        logging.debug("a={}".format(a))
+        logging.info("tyep(a)={},a={}".format(type(a),a))
         observation, reward, done, info = env.step(a)
         # env.render()
         if done:

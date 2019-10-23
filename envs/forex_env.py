@@ -221,9 +221,11 @@ def ValidationRun(env, net, episodes=10, device="cpu", epsilon=0.02, comission=0
             if np.random.random() < epsilon:
                 action = env.action_space.sample()
             else:
-                action = Actions(action_idx)
+                action = action_idx
+                # action = Actions(action_idx)
             obs, reward, done, _ = env.step(action)
             total_reward += reward
+            logging.info("action={},reward={},toal_reward={},floattingCaption={}".format(action,reward,total_reward,env._floattingCapitalPoint()))
             if done:
                 stats['episode_reward'].append(total_reward)
                 stats['order_profits'].append(env._floattingCapitalPoint())
