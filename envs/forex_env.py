@@ -43,7 +43,7 @@ class forex_candle_env(gym.Env):
         self._window_size = window_size
         self._initCapitalPoint = initCapitalPoint
         self._feePoint = feePoint
-        self._shape = (self._window_size *(self._pd.shape[1]-1)+4,)
+        self._shape = (self._window_size *(self._pd.shape[1]-1)+3,)
 
 
         # spaces
@@ -73,13 +73,21 @@ class forex_candle_env(gym.Env):
 
 
     def step(self, action):
+        oldstick = self._current_tick
         oldFloattingCapitalPoint = self._floattingCapitalPoint()
-        oldprice = self._currentPrice()
+        oldhold = self._holdPosition
+        oldholdprice = self._holdPrice
         self._updateStep(action)
+        newFloattingCapitalPoint = self._floattingCapitalPoint()
+        newhold= self._holdPosition
+        newholdprice = self._holdPrice
+        step_reward = newFloattingCapitalPoint - oldFloattingCapitalPoint
+
+        if self._done == False:
+            self._current_tick += 1
         observation = self._get_observation()
-        step_reward = self._floattingCapitalPoint() - oldFloattingCapitalPoint
-        info = {"action":action,"oldprice":oldprice,"curprice":self._currentPrice(),"reward":step_reward,"floattingCaption":self._floattingCapitalPoint()}
-        logging.debug("step={},step_reward={}".format(self._current_tick,step_reward))
+
+        info = {"tick":oldstick,"oldhold":oldhold,"oldholdprice":oldholdprice,"oldfloattingCaption":oldFloattingCapitalPoint,"action":action,"newhold":newhold,"newholdprice":newholdprice,"reward":step_reward,"newfloattingCaption":newFloattingCapitalPoint}
         return observation, step_reward, self._done, info
 
     def _currentPrice(self):
@@ -98,7 +106,7 @@ class forex_candle_env(gym.Env):
         oldholdprice = self._holdPrice
         pointPrice = 0
         getProfitPoint = 0
-        self._current_tick += 1
+        
         if action == Actions.Buy.value:
             if self._holdPosition < 0:
                isClose = True
@@ -125,7 +133,7 @@ class forex_candle_env(gym.Env):
             self._holdPosition -= 1
         else:
             logging.debug("just hold")
-        
+
         if isClose == True:
             self._capitalPoint += getProfitPoint
         if isOpen == True:
@@ -138,7 +146,8 @@ class forex_candle_env(gym.Env):
     def _get_observation(self):
         logging.debug("startindex={},endindex={},self._pd.shape={}".format(self._current_tick-self._window_size,self._current_tick,self._pd.shape))
         obs1 = self._pd.iloc[self._current_tick-self._window_size:self._current_tick,1:].to_numpy()
-        obs2 = np.array([self._feePoint,self._holdPosition,self._holdPrice,self._floattingCapitalPoint()])
+        # obs2 = np.array([self._feePoint,self._holdPosition,self._holdPrice,self._floattingCapitalPoint()])
+        obs2 = np.array([self._holdPosition,self._holdPrice,self._floattingCapitalPoint()])
         obs = np.append(obs1,obs2).astype("float32")
         # logging.debug("obs1.shape={},obs2.shape={},obs.shape={},obs.dtype={}".format(obs1.shape,obs2.shape,obs.shape,obs.dtype))
         logging.debug("obs.shape={},self._done={},self._feePoint={},self._holdPosition={},self._holdPrice={},self._floattingCapitalPoint()={}".format(obs.shape,self._done,self._feePoint,self._holdPosition,self._holdPrice,self._floattingCapitalPoint()))
