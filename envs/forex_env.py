@@ -77,17 +77,20 @@ class forex_candle_env(gym.Env):
         oldFloattingCapitalPoint = self._floattingCapitalPoint()
         oldhold = self._holdPosition
         oldholdprice = self._holdPrice
+        curprice = self._currentPrice()
         self._updateStep(action)
         newFloattingCapitalPoint = self._floattingCapitalPoint()
         newhold= self._holdPosition
         newholdprice = self._holdPrice
+        
         step_reward = newFloattingCapitalPoint - oldFloattingCapitalPoint
 
         if self._done == False:
             self._current_tick += 1
         observation = self._get_observation()
 
-        info = {"tick":oldstick,"oldhold":oldhold,"oldholdprice":oldholdprice,"oldfloattingCaption":oldFloattingCapitalPoint,"action":action,"newhold":newhold,"newholdprice":newholdprice,"reward":step_reward,"newfloattingCaption":newFloattingCapitalPoint}
+        info = {"tick":oldstick,"curprice":curprice,"nextprice":self._currentPrice(),"oldhold":oldhold,"oldholdprice":oldholdprice,"oldfloattingCaption":oldFloattingCapitalPoint,"action":action,"newhold":newhold,"newholdprice":newholdprice,"reward":step_reward,"newfloattingCaption":newFloattingCapitalPoint}
+        logging.debug("info={}".format(info))
         return observation, step_reward, self._done, info
 
     def _currentPrice(self):
