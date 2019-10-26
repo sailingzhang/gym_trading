@@ -61,6 +61,7 @@ class forex_candle_env(gym.Env):
         self._holdPosition = 0#the uint is 1 or -1
         self._holdPrice = 0
         self._capitalPoint =self._initCapitalPoint
+        self._last_floattingCapitalPoint = self._initCapitalPoint
         self._current_tick = self._window_size
         self._done = False
 
@@ -75,22 +76,27 @@ class forex_candle_env(gym.Env):
     def step(self, action):
         oldstick = self._current_tick
         oldFloattingCapitalPoint = self._floattingCapitalPoint()
+        oldLastFloattingCapitalPoint = self._last_floattingCapitalPoint
         oldhold = self._holdPosition
         oldholdprice = self._holdPrice
+        oldcapitalPoint = self._capitalPoint
         curprice = self._currentPrice()
+        logging.debug("step begin,tick={}".format(oldstick))
         self._updateStep(action)
         newFloattingCapitalPoint = self._floattingCapitalPoint()
         newhold= self._holdPosition
         newholdprice = self._holdPrice
+        newscapitalPoint = self._capitalPoint
         
-        step_reward = newFloattingCapitalPoint - oldFloattingCapitalPoint
+        step_reward = newFloattingCapitalPoint  - oldLastFloattingCapitalPoint
+        self._last_floattingCapitalPoint = newFloattingCapitalPoint
 
-        if self._done == False:
+        if self._done == False  and action == Actions.Hold.value:
             self._current_tick += 1
         observation = self._get_observation()
 
-        info = {"tick":oldstick,"curprice":curprice,"nextprice":self._currentPrice(),"oldhold":oldhold,"oldholdprice":oldholdprice,"oldfloattingCaption":oldFloattingCapitalPoint,"action":action,"newhold":newhold,"newholdprice":newholdprice,"reward":step_reward,"newfloattingCaption":newFloattingCapitalPoint}
-        logging.debug("info={}".format(info))
+        info = {"tick":oldstick,"curprice":curprice,"oldcapitalPoint":oldcapitalPoint,"oldhold":oldhold,"oldholdprice":oldholdprice,"oldfloattingCaption":oldFloattingCapitalPoint,"oldLastFloattingCapitalPoint":oldLastFloattingCapitalPoint,"action":action,"newhold":newhold,"newholdprice":newholdprice,"newscapitalPoint":newscapitalPoint,"reward":step_reward,"newfloattingCaption":newFloattingCapitalPoint}
+        logging.debug("step end,stick={}info={}".format(oldstick,info))
         return observation, step_reward, self._done, info
 
     def _currentPrice(self):
