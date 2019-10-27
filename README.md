@@ -1,0 +1,1 @@
+This is an Reinforcement Learning environment for Forex Trading based on OpenAi's gym standard interface.Although It is not perfect for visualization render function ,It has the base function for Reinforcement Learning. I will continue to complete it later.
