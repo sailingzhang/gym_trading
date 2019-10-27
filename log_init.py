@@ -25,6 +25,5 @@ def log_init(log_file,level):
 
     console.setFormatter(formatter)
     # logging.getLogger('').addHandler(console)
-
     # logging.Formatter(fmt='%(asctime)s',datefmt='%Y-%m-%d,%H:%M:%S.%f')
-
+#test

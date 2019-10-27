@@ -19,7 +19,8 @@ from pyecharts.charts import Bar
 print("load plt")
 import matplotlib.pyplot as plt
 # import plotly.graph_objects as go
-
+print("load torch")
+import torch
 
 
 class Actions(Enum):
@@ -233,8 +234,9 @@ def ValidationRun(env, net, episodes=10, device="cpu", epsilon=0.02, comission=0
         episode_steps = 0
 
         while True:
-            # obs_v = torch.tensor([obs]).to(device)
-            obs_v = np.array([obs])
+            obs_v = torch.tensor(obs[np.newaxis,:]).to(device)
+            #obs_v = torch.tensor(obs).to(device)
+            #obs_v = np.array([obs])
             out_v = net(obs_v)
             action_idx = out_v.max(dim=1)[1].item()
             if np.random.random() < epsilon:
