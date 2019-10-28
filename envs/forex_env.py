@@ -146,6 +146,8 @@ class forex_candle_env(gym.Env):
 
         if isClose == True:
             self._capitalPoint += getProfitPoint
+            if 0 == self._holdPosition:
+                self._holdPrice = 0
         if isOpen == True:
             self._holdPrice = (self._holdPrice * abs(oldHoldPosition) + (self._currentPrice()+pointPrice)*1)/abs(self._holdPosition)
             logging.debug("oldholdposition={},newposition={},c_price={},pointprice={} oldholdprice={},newholdprice={},self._floattingCapitalPoint()={}".format(oldHoldPosition,self._holdPosition,self._currentPrice(),pointPrice,oldholdprice,self._holdPrice,self._floattingCapitalPoint()))
@@ -174,17 +176,18 @@ class forex_candle_env(gym.Env):
         drawprice = self._pd.loc[0:self._current_tick,[self._CloseIndexName]].to_numpy()
         logging.debug("len(drawprice)={},drawprice={}".format(len(drawprice),drawprice))
         window_ticks = np.arange(len(drawprice))
-        plt.plot(drawprice)
-
+        plt.cla()
+        plt.plot(drawprice,alpha=0.5)
         plt.scatter(self._OpenLongTicks, self._pd.loc[self._OpenLongTicks,[self._CloseIndexName]], c='r',marker='^')
         plt.scatter(self._OPenShortTicks, self._pd.loc[self._OPenShortTicks,[self._CloseIndexName]],c='r', marker='v')
-        plt.scatter(self._CloseLongTicks, self._pd.loc[self._CloseLongTicks,[self._CloseIndexName]],c='g' ,marker='^', alpha=0.5)
-        plt.scatter(self._CloseShortTicks, self._pd.loc[self._CloseShortTicks,[self._CloseIndexName]],c='g', marker='v', alpha=0.5)
-
+        plt.scatter(self._CloseLongTicks, self._pd.loc[self._CloseLongTicks,[self._CloseIndexName]],c='o' ,marker='^')
+        plt.scatter(self._CloseShortTicks, self._pd.loc[self._CloseShortTicks,[self._CloseIndexName]],c='o', marker='v')
+        logging.info("(ol)={},(os)={},(cl)={},(cs)={}".format(self._OpenLongTicks,self._OPenShortTicks,self._CloseLongTicks,self._CloseShortTicks))
         plt.suptitle(
             "Floatting Capital: %.6f" % self._floattingCapitalPoint() + ' ~ ' +
             "Step:%d" % self._current_tick
         )
+        plt.show()
 
     def render_all_bak(self):
         logging.debug("begin plotly")
