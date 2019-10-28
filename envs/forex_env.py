@@ -180,8 +180,8 @@ class forex_candle_env(gym.Env):
         plt.plot(drawprice,alpha=0.5)
         plt.scatter(self._OpenLongTicks, self._pd.loc[self._OpenLongTicks,[self._CloseIndexName]], c='r',marker='^')
         plt.scatter(self._OPenShortTicks, self._pd.loc[self._OPenShortTicks,[self._CloseIndexName]],c='r', marker='v')
-        plt.scatter(self._CloseLongTicks, self._pd.loc[self._CloseLongTicks,[self._CloseIndexName]],c='o' ,marker='^')
-        plt.scatter(self._CloseShortTicks, self._pd.loc[self._CloseShortTicks,[self._CloseIndexName]],c='o', marker='v')
+        plt.scatter(self._CloseLongTicks, self._pd.loc[self._CloseLongTicks,[self._CloseIndexName]],c='b',marker='^')
+        plt.scatter(self._CloseShortTicks, self._pd.loc[self._CloseShortTicks,[self._CloseIndexName]],c='b', marker='v')
         logging.info("(ol)={},(os)={},(cl)={},(cs)={}".format(self._OpenLongTicks,self._OPenShortTicks,self._CloseLongTicks,self._CloseShortTicks))
         plt.suptitle(
             "Floatting Capital: %.6f" % self._floattingCapitalPoint() + ' ~ ' +
