@@ -22,6 +22,8 @@ import matplotlib.pyplot as plt
 print("load torch")
 import torch
 
+from sklearn.preprocessing import StandardScaler
+
 
 class Actions(Enum):
     Sell = 0
@@ -40,12 +42,18 @@ class forex_candle_env(gym.Env):
         self.basequate = 100000 
         self._pd = pd.read_csv(filepath)
         self._CloseIndexName = "Close"
+        self._bStandard = True
+        if self._bStandard:
+            npdata = self._pd.values[:,1:]
+            self._fit =StandardScaler().fit(npdata)
+            logging.info("type(npdata)={},npdata={}".format(type(npdata),npdata))
+            # StandardScaler().fit(self._pd.loc[:, [1:]].to_numpy())
         
         self._window_size = window_size
         self._initCapitalPoint = initCapitalPoint
         self._feePoint = feePoint
-        self._shape = (self._window_size *(self._pd.shape[1]-1)+3,)
-
+        # self._shape = (self._window_size *(self._pd.shape[1]-1)+3,)
+        self._shape = (self._window_size *(self._pd.shape[1]-1)+1,)
 
         # spaces
         self.action_space = spaces.Discrete(len(Actions))
@@ -96,7 +104,7 @@ class forex_candle_env(gym.Env):
             self._current_tick += 1
         observation = self._get_observation()
 
-        info = {"tick":oldstick,"curprice":curprice,"oldcapitalPoint":oldcapitalPoint,"oldhold":oldhold,"oldholdprice":oldholdprice,"oldfloattingCaption":oldFloattingCapitalPoint,"oldLastFloattingCapitalPoint":oldLastFloattingCapitalPoint,"action":action,"newhold":newhold,"newholdprice":newholdprice,"newscapitalPoint":newscapitalPoint,"reward":step_reward,"newfloattingCaption":newFloattingCapitalPoint}
+        info = {"tick":oldstick,"curprice":curprice,"oldcapitalPoint":oldcapitalPoint,"oldhold":oldhold,"oldholdprice":oldholdprice,"oldfloattingCaption":oldFloattingCapitalPoint,"oldLastFloattingCapitalPoint":oldLastFloattingCapitalPoint,"action":action,"newhold":newhold,"newholdprice":newholdprice,"newscapitalPoint":newscapitalPoint,"reward":step_reward,"newfloattingCaption":newFloattingCapitalPoint,"holdPositionRatio":self._holdPositionRatio()}
         logging.debug("step end,stick={}info={}".format(oldstick,info))
         return observation, step_reward, self._done, info
 
@@ -158,12 +166,17 @@ class forex_candle_env(gym.Env):
     def _get_observation(self):
         logging.debug("startindex={},endindex={},self._pd.shape={}".format(self._current_tick-self._window_size,self._current_tick,self._pd.shape))
         obs1 = self._pd.iloc[self._current_tick-self._window_size:self._current_tick,1:].to_numpy()
-        # obs2 = np.array([self._feePoint,self._holdPosition,self._holdPrice,self._floattingCapitalPoint()])
-        obs2 = np.array([self._holdPosition,self._holdPrice,self._floattingCapitalPoint()])
+        # obs2 = np.array([self._holdPosition,self._holdPrice,self._floattingCapitalPoint()])
+        obs2 = np.array([self._holdPositionRatio()])
+        if self._bStandard:
+            obs1 = self._fit.transform(obs1)
         obs = np.append(obs1,obs2).astype("float32")
+        logging.debug("obs={}".format(obs))
         # logging.debug("obs1.shape={},obs2.shape={},obs.shape={},obs.dtype={}".format(obs1.shape,obs2.shape,obs.shape,obs.dtype))
-        logging.debug("obs.shape={},self._done={},self._feePoint={},self._holdPosition={},self._holdPrice={},self._floattingCapitalPoint()={}".format(obs.shape,self._done,self._feePoint,self._holdPosition,self._holdPrice,self._floattingCapitalPoint()))
+        # logging.debug("obs.shape={},self._done={},self._feePoint={},self._holdPosition={},self._holdPrice={},self._floattingCapitalPoint()={}".format(obs.shape,self._done,self._feePoint,self._holdPosition,self._holdPrice,self._floattingCapitalPoint()))
         return obs
+    def _holdPositionRatio(self):
+        return abs(self._holdPosition)/self._floattingCapitalPoint()
     
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
