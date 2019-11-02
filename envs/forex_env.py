@@ -22,7 +22,9 @@ import matplotlib.pyplot as plt
 print("load torch")
 import torch
 
-from sklearn.preprocessing import StandardScaler
+import  sys
+
+from sklearn.preprocessing import StandardScaler,MinMaxScaler
 
 
 class Actions(Enum):
@@ -31,22 +33,48 @@ class Actions(Enum):
     Hold = 2
 
 
+
+def normalization(data):
+    _range = np.max(data) - np.min(data)
+    return (data - np.min(data)) / _range
+ 
+ 
+def standardization(data):
+    mu = np.mean(data, axis=0)
+    sigma = np.std(data, axis=0)
+    return (data - mu) / sigma
+
+pre_std_type = "standardization"
+pre_normal_type = "normalization"
+pre_diff_type ="difflization"
+pre_no_type ="no"
 class forex_candle_env(gym.Env):
     metadata = {'render.modes': ['human']}
-    def __init__(self,filepath,window_size,initCapitalPoint=2000,feePoint=20):
+    def __init__(self,filepath,window_size,initCapitalPoint=2000,feePoint=20,preprocessType=pre_no_type):
         """
         pointProfit:the gain or loss when  up or down 1 point every unit
         initCapitalPoint:how many  points the capital can cost every unit
         """
-        
+        self._preprocessTypeList = [pre_std_type,pre_normal_type,pre_diff_type,pre_no_type]
+        self._preprocessType = preprocessType
+        if preprocessType  not in self._preprocessTypeList:
+            print("preprocessType not in {}".format(self._preprocessTypeList))
+            sys.exit()
         self.basequate = 100000 
         self._pd = pd.read_csv(filepath)
         self._CloseIndexName = "Close"
-        self._bStandard = True
-        if self._bStandard:
-            npdata = self._pd.values[:,1:]
+        self._bStandard = False
+
+        npdata = self._pd.values[:,1:]
+        if self._preprocessType ==pre_std_type:
             self._fit =StandardScaler().fit(npdata)
-            logging.info("type(npdata)={},npdata={}".format(type(npdata),npdata))
+        elif self._preprocessType == pre_normal_type:
+            self._fit = MinMaxScaler().fit(npdata)
+        elif self._preprocessType == pre_diff_type:
+            pass   
+        else:
+            pass
+        logging.info("pre_process_type={}".format(self._preprocessType))
             # StandardScaler().fit(self._pd.loc[:, [1:]].to_numpy())
         
         self._window_size = window_size
@@ -72,6 +100,8 @@ class forex_candle_env(gym.Env):
         self._capitalPoint =self._initCapitalPoint
         self._last_floattingCapitalPoint = self._initCapitalPoint
         self._current_tick = self._window_size
+        if self._preprocessType == pre_diff_type:
+            self._current_tick = self._window_size + 1
         self._done = False
 
         self._OpenLongTicks=[]
@@ -168,8 +198,13 @@ class forex_candle_env(gym.Env):
         obs1 = self._pd.iloc[self._current_tick-self._window_size:self._current_tick,1:].to_numpy()
         # obs2 = np.array([self._holdPosition,self._holdPrice,self._floattingCapitalPoint()])
         obs2 = np.array([self._holdPositionRatio()])
-        if self._bStandard:
+        if self._preprocessType == pre_std_type or self._preprocessType == pre_normal_type:
             obs1 = self._fit.transform(obs1)
+        elif self._preprocessType == pre_diff_type:
+            last_obs1 = self._pd.iloc[self._current_tick-self._window_size-1:self._current_tick -1,1:].to_numpy()
+            obs1 = obs1 - last_obs1
+        else:
+            pass
         obs = np.append(obs1,obs2).astype("float32")
         logging.debug("obs={}".format(obs))
         # logging.debug("obs1.shape={},obs2.shape={},obs.shape={},obs.dtype={}".format(obs1.shape,obs2.shape,obs.shape,obs.dtype))
@@ -238,6 +273,7 @@ class forex_candle_env(gym.Env):
 
 def ValidationRun(env, net, episodes=10, device="cpu", epsilon=0.02, comission=0.1):
     stats = {
+        'step_idx':[],
         'episode_reward': [],
         'order_profits': [],
     }
@@ -248,7 +284,7 @@ def ValidationRun(env, net, episodes=10, device="cpu", epsilon=0.02, comission=0
         position = None
         position_steps = None
         episode_steps = 0
-
+        step_idx =0
         while True:
             obs_v = torch.tensor(obs[np.newaxis,:]).to(device)
             #obs_v = torch.tensor(obs).to(device)
@@ -262,9 +298,11 @@ def ValidationRun(env, net, episodes=10, device="cpu", epsilon=0.02, comission=0
                 # action = Actions(action_idx)
             obs, reward, done, info= env.step(action)
             total_reward += reward
+            step_idx += 1
             logging.info("info={}".format(info))
             # logging.info("action={},reward={},toal_reward={},floattingCaption={}".format(action,reward,total_reward,env._floattingCapitalPoint()))
             if done:
+                stats['step_idx'].append(step_idx)
                 stats['episode_reward'].append(total_reward)
                 stats['order_profits'].append(env._floattingCapitalPoint())
                 break
