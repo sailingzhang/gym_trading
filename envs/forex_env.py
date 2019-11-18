@@ -50,7 +50,7 @@ pre_diff_type ="difflization"
 pre_no_type ="no"
 class forex_candle_env(gym.Env):
     metadata = {'render.modes': ['human']}
-    def __init__(self,filepath,window_size,initCapitalPoint=2000,feePoint=20,preprocessType=pre_no_type):
+    def __init__(self,filepath,window_size,initCapitalPoint=2000,feePoint=20,preprocessType=pre_no_type,maxHold=1):
         """
         pointProfit:the gain or loss when  up or down 1 point every unit
         initCapitalPoint:how many  points the capital can cost every unit
@@ -82,6 +82,7 @@ class forex_candle_env(gym.Env):
         self._feePoint = feePoint
         # self._shape = (self._window_size *(self._pd.shape[1]-1)+3,)
         self._shape = (self._window_size *(self._pd.shape[1]-1)+1,)
+        self._maxHold = maxHold
 
         # spaces
         self.action_space = spaces.Discrete(len(Actions))
@@ -155,6 +156,11 @@ class forex_candle_env(gym.Env):
         pointPrice = 0
         getProfitPoint = 0
         
+        if abs(self._holdPosition) >= self._maxHold:
+            if (action == Actions.Buy.value and self._holdPosition >=0) or (action == Actions.Sell.value and self._holdPosition <= 0):
+                    logging.info("reach max position,so hold,maxHold={}".format(self._maxHold))
+                    action = Actions.Hold.value
+
         if action == Actions.Buy.value:
             if self._holdPosition < 0:
                isClose = True
