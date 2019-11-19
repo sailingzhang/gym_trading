@@ -122,6 +122,13 @@ class forex_candle_env(gym.Env):
         oldcapitalPoint = self._capitalPoint
         curprice = self._currentPrice()
         logging.debug("step begin,tick={}".format(oldstick))
+        
+        if abs(self._holdPosition) >= self._maxHold:
+            if (action == Actions.Buy.value and self._holdPosition >=0) or (action == Actions.Sell.value and self._holdPosition <= 0):
+                    logging.debug("reached max position,so hold,maxHold={}".format(self._maxHold))
+                    action = Actions.Hold.value
+
+
         self._updateStep(action)
         newFloattingCapitalPoint = self._floattingCapitalPoint()
         newhold= self._holdPosition
@@ -156,11 +163,6 @@ class forex_candle_env(gym.Env):
         pointPrice = 0
         getProfitPoint = 0
         
-        if abs(self._holdPosition) >= self._maxHold:
-            if (action == Actions.Buy.value and self._holdPosition >=0) or (action == Actions.Sell.value and self._holdPosition <= 0):
-                    logging.info("reach max position,so hold,maxHold={}".format(self._maxHold))
-                    action = Actions.Hold.value
-
         if action == Actions.Buy.value:
             if self._holdPosition < 0:
                isClose = True
